@@ -1,0 +1,16 @@
+Użycie
+Raz na jakiś czas odśwież listę pluginów:
+
+bash
+python cli/fetch_wp_plugins.py
+Odpal batch‑scanner (np. po 10 na sesję):
+
+bash
+python cli/batch_scan.py --limit 10        # pierwsza dziesiątka nieskanowanych
+python cli/batch_scan.py --limit 50        # kolejne 50
+Jeśli chcesz wznowić od konkretnego sluga (np. przerwałeś przy akismet):
+
+bash
+python cli/batch_scan.py --limit 20 --resume-from akismet
+SQLite pilnuje, które pluginy mają last_scan_at IS NULL – więc skaner automatycznie bierze tylko nieskanowane. resume-from pozwala Ci “przeskoczyć” do danego miejsca w kolejności alfabetycznej, gdy chcesz ręcznie ustawić punkt startu.
+
