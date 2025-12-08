@@ -1,0 +1,29 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+
+# TensorFlow + ML
+*.so
+*.dylib
+tensorflow/
+torch/
+*.whl
+
+# WordPress scanner
+temp_repos/
+*.sqlite
+output/large_*.*
+svn_checkouts/
+db/scans.sqlite
+
+# OS
+.DS_Store
+Thumbs.db
+EOF

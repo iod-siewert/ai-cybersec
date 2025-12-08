@@ -1,0 +1,27 @@
+Analizuj kod {language} z pliku {filepath} ({wp_context}):
+{code}
+{format_instructions}
+
+**SZUKAJ TYLKO tych wzorców (LOKALNE / WordPress/PHP/JS):**
+
+1. **SQLi**: `$wpdb->query("$user_input")`, `f"SELECT {{user}}"`, `cursor.execute("...'+user+'...")`
+2. **RCE**: `eval(base64_decode($_POST['p']))`, `system($_GET['cmd'])`
+3. **SSRF**: `file_get_contents($_GET['url'])`, `requests.get(user_input)`
+4. **SECRETS**: `DB_PASSWORD=`, `API_KEY=`, `private_key=`
+5. **PATH TRAVERSAL**: `include($_GET['file'])`, `open('../'+user)`
+6. **WP Nonce**: AJAX handler bez `check_ajax_referer()` lub `wp_verify_nonce()`
+7. **XSS**: `echo $_GET['data']` bez `esc_html()`, `innerHTML = user_input`
+
+**KAŻDY finding MUSI zawierać:**
+- Dokładny SNIPPET (3 linie kodu z błędem)
+- REALNY EXPLOIT PoC (payload)
+- KONKRETNY FIX z kodem
+
+**Puste findings = brak błędów. NIE WYMYSLAJ.**
+
+**WYJŚCIE: JSON zgodnie ze schematem powyżej**
+
+Pamietaj Odpowiadaj TYLKO poprawnym JSON-em zgodnym ze schematem powyżej.
+Bez dodatkowego tekstu, bez ```json, bez komentarzy.
+Jeśli nie ma podatności – zwróć:
+"findings": []"

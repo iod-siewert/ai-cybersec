@@ -1,0 +1,83 @@
+#!/usr/bin/env python3
+import argparse
+import json
+import tempfile
+from pathlib import Path
+from typing import List, Dict, Any
+import os
+import sys
+
+CURRENT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = CURRENT_DIR.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
+import git
+from rich.console import Console
+from rich.table import Table
+
+from sec_agents.wp_specialist import WPSpecialist
+from output.sarif_generator import findings_to_sarif
+
+console = Console()
+
+def scan_repo(repo_url: str, max_files: int = 30) -> List[Dict[str, Any]]:
+    scanner = WPSpecialist()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        git.Repo.clone_from(repo_url, tmpdir)
+        base = Path(tmpdir)
+
+        files: List[Path] = []
+        for path in base.rglob("*"):
+            if (
+                path.is_file()
+                and path.suffix in {".php", ".js", ".py"}
+                and path.stat().st_size < 80_000
+            ):
+                files.append(path)
+                if len(files) >= max_files:
+                    break
+
+        console.print(f"[bold]Skanuję {len(files)} plików z {repo_url}[/bold]")
+
+        all_findings: List[Dict[str, Any]] = []
+        for path in files:
+            rel = str(path.relative_to(base))
+            try:
+                content = path.read_text(encoding="utf-8", errors="ignore")
+            except Exception:
+                continue
+            findings = scanner.scan_wp_file(content, rel, "php")
+            all_findings.extend(findings)
+
+        return all_findings
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Batch WP plugin scanner")
+    parser.add_argument("repo_url", help="Git repo URL")
+    parser.add_argument("--max-files", type=int, default=30)
+    parser.add_argument(
+        "--output", choices=["summary", "json", "sarif"], default="summary"
+    )
+    args = parser.parse_args()
+
+    findings = scan_repo(args.repo_url, args.max_files)
+
+    if args.output == "summary":
+        console.print(f"[green]Znaleziono {len(findings)} findings[/green]")
+        table = Table(title="Findings")
+        table.add_column("File")
+        table.add_column("Line")
+        table.add_column("Type")
+        table.add_column("Severity")
+        for f in findings[:50]:
+            table.add_row(f["file"], str(f["line"]), f["type"], str(f["severity"]))
+        console.print(table)
+    elif args.output == "json":
+        print(json.dumps({"findings": findings}, indent=2))
+    else:  # sarif
+        print(findings_to_sarif(findings))
+
+
+if __name__ == "__main__":
+    main()

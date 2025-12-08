@@ -1,0 +1,6 @@
+openai:
+  default_model: gpt-4o-mini
+  pattern_model: gpt-4o-mini
+  deep_model: gpt-4o
+limits:
+  max_code_chars: 8000
