@@ -1,0 +1,39 @@
+- id: sqli_vuln
+  file: sqli_vuln.php
+  type: sqli
+  expected: true
+
+- id: sqli_safe
+  file: sqli_safe.php
+  type: sqli
+  expected: false
+
+- id: xss_vuln
+  file: xss_vuln.php
+  type: xss
+  expected: true
+
+- id: xss_safe
+  file: xss_safe.php
+  type: xss
+  expected: false
+
+- id: rce_vuln
+  file: rce_vuln.php
+  type: rce
+  expected: true
+
+- id: rce_safe
+  file: rce_safe.php
+  type: rce
+  expected: false
+
+- id: nonce_vuln
+  file: nonce_vuln.php
+  type: nonce_missing
+  expected: true
+
+- id: nonce_safe
+  file: nonce_safe.php
+  type: nonce_missing
+  expected: false
