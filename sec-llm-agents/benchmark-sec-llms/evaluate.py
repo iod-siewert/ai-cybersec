@@ -2,8 +2,13 @@
 import json
 from pathlib import Path
 from typing import Dict, Any, List
-
+import sys
 import yaml
+
+# ✅ DODAJ TO, zanim zaimportujesz sec_agents
+CURRENT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = CURRENT_DIR.parent
+sys.path.insert(0, str(PROJECT_ROOT))
 
 from sec_agents.wp_specialist import WPSpecialist  # dostosuj do swojej nazwy pakietu
 
