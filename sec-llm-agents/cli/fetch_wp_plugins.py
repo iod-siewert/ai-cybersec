@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import requests
 from datetime import datetime
-from db.scans_db import init_db, upsert_plugin
+from db-plugins.scans_db import init_db, upsert_plugin
 
 API_URL = "https://api.wordpress.org/plugins/info/1.2/"
 
