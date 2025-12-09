@@ -37,3 +37,55 @@
   file: nonce_safe.php
   type: nonce_missing
   expected: false
+
+# 1–8 bazowe przykłady jak wcześniej...
+
+- id: real_sqli_1
+  file: real_sqli_1.php
+  type: sqli
+  expected: true
+
+- id: real_sqli_2
+  file: real_sqli_2.php
+  type: sqli
+  expected: true
+
+- id: real_xss_1
+  file: real_xss_1.php
+  type: xss
+  expected: true
+
+- id: real_xss_2
+  file: real_xss_2.php
+  type: xss
+  expected: true
+
+- id: real_rce_1
+  file: real_rce_1.php
+  type: rce
+  expected: true
+
+- id: real_rce_2
+  file: real_rce_2.php
+  type: rce
+  expected: true
+
+- id: real_idor_1
+  file: real_idor_1.php
+  type: idor
+  expected: true
+
+- id: real_idor_2
+  file: real_idor_2.php
+  type: idor
+  expected: true
+
+- id: real_nonce_1
+  file: real_nonce_1.php
+  type: nonce_missing
+  expected: true
+
+- id: real_info_disc_1
+  file: real_info_disc_1.php
+  type: info_disclosure
+  expected: true
