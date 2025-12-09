@@ -11,17 +11,18 @@ Analizuj kod {language} z pliku {filepath} ({wp_context}):
 5. **PATH TRAVERSAL**: `include($_GET['file'])`, `open('../'+user)`
 6. **WP Nonce**: AJAX handler bez `check_ajax_referer()` lub `wp_verify_nonce()`
 7. **XSS**: `echo $_GET['data']` bez `esc_html()`, `innerHTML = user_input`
+8. **IDOR**: użycie user_id / post_id z GET/POST bez sprawdzenia, czy należy do aktualnego użytkownika
+9. **INFO DISCLOSURE**: endpointy/akcje ujawniające konfigurację, ścieżki, nazwy baz danych, itp. dla niezalogowanych
 
 **KAŻDY finding MUSI zawierać:**
 - Dokładny SNIPPET (3 linie kodu z błędem)
 - REALNY EXPLOIT PoC (payload)
 - KONKRETNY FIX z kodem
 
-**Puste findings = brak błędów. NIE WYMYSLAJ.**
+**ŚCISŁE WYMAGANIA FORMATU:**
+- Odpowiadasz TYLKO jednym poprawnym JSON-em zgodnym ze schematem powyżej.
+- BEZ dodatkowego tekstu, BEZ ```
+- BEZ opisywania "przykładowego" JSON – tylko realne wyniki z tego kodu.
 
-**WYJŚCIE: JSON zgodnie ze schematem powyżej**
-
-Pamietaj Odpowiadaj TYLKO poprawnym JSON-em zgodnym ze schematem powyżej.
-Bez dodatkowego tekstu, bez ```json, bez komentarzy.
-Jeśli nie ma podatności – zwróć:
-"findings": []"
+Jeśli nie ma podatności – zwróć dokładnie:
+{{"findings": []}}

@@ -50,14 +50,25 @@ class PatternScanner:
             llm_result = self.llm.invoke(filled_prompt)
             text = llm_result.content if hasattr(llm_result, "content") else str(llm_result)
             result: ScanResult = self.parser.parse(text)
+        except Exception as exc:
+            print(f"[pattern_scanner] parse error for {filepath}: {exc}")
+            # prosty fallback: spróbuj wyciąć fragment od pierwszej klamry
+            try:
+                start = text.index("{")
+                end = text.rindex("}") + 1
+                json_part = text[start:end]
+                result = self.parser.parse(json_part)
+            except Exception as exc2:
+                print(f"[pattern_scanner] fallback parse failed for {filepath}: {exc2}")
+                return []
 
-            findings: List[Dict[str, Any]] = []
-            for f in result.findings:
-                d = f.model_dump()
-                if not d.get("owasp"):
-                    d["owasp"] = "A09:2021-Security Misconfiguration"
-                findings.append(d)
-            return findings
+        findings: List[Dict[str, Any]] = []
+        for f in result.findings:
+            d = f.model_dump()
+            if not d.get("owasp"):
+                d["owasp"] = "A09:2021-Security Misconfiguration"
+            findings.append(d)
+        return findings
         except Exception as exc:
             print(f"[pattern_scanner] error for {filepath}: {exc}")
             return []

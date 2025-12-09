@@ -17,6 +17,8 @@ class WPSpecialist:
         "secrets": "A09:2021-Security Misconfiguration",
         "path_traversal": "A05:2021-Security Misconfiguration",
         "nonce_missing": "A01:2021-Broken Access Control",
+        "idor": "A01:2021-Broken Access Control",
+        "info_disclosure": "A01:2021-Broken Access Control",
     }
 
     def __init__(self) -> None:
@@ -28,7 +30,7 @@ class WPSpecialist:
         enriched: List[Dict[str, Any]] = []
         for f in findings:
             t = f.get("type", "")
-            if t == "nonce_missing":
+            if t == "nonce_missing" or t == "idor":
                 f["severity"] = "high"
             if t in self.OWASP_MAP:
                 f["owasp"] = self.OWASP_MAP[t]
