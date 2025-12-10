@@ -1,4 +1,6 @@
 Analizuj kod {language} z pliku {filepath} ({wp_context}) pod kątem XSS:
+
+```{language}
 {code}
 
 {format_instructions}
@@ -7,59 +9,66 @@ SKUP SIĘ WYŁĄCZNIE NA XSS (w tym DOM XSS, reflected, stored):
 
 Przykłady podatnych wzorców:
 
-1. PHP (reflected/stored):
-   echo $_GET['msg'];
-   echo "<div>" . $_POST['comment'] . "</div>";
-   printf("%s", $_REQUEST['q']);
+PHP (reflected/stored):
+echo $_GET['msg'];
+echo "<div>" . $_POST['comment'] . "</div>";
+printf("%s", $_REQUEST['q']);
 
-   BEZ esc_html(), esc_attr(), wp_kses(), sanitize_*.
+BEZ esc_html(), esc_attr(), wp_kses(), sanitize_*.
 
-2. PHP (WordPress):
-   the_content() z filtrem, który dodaje dane z user input bez esc_*
-   echo get_option('custom_html'); // jeśli to jest przechowywany user input
+PHP (WordPress):
+the_content() z filtrem, który dodaje dane z user input bez esc_*
+echo get_option('custom_html'); // jeśli to jest przechowywany user input
 
-3. JS/DOM XSS:
-   element.innerHTML = userInput;
-   element.outerHTML = location.hash.substring(1);
-   document.write(location.search);
+JS/DOM XSS:
+element.innerHTML = userInput;
+element.outerHTML = location.hash.substring(1);
+document.write(location.search);
 
-4. Atrybuty:
-   <a href="<?php echo $_GET['url']; ?>">  // bez walidacji schematu
-   <img src="<?php echo $_GET['src']; ?>">
+Atrybuty:
+<a href="<?php echo $_GET['url']; ?>"> // bez walidacji schematu
+<img src="<?php echo $_GET['src']; ?>">
 
-5. Template injection HTML:
-   <?= $_GET['name'] ?> w szablonie bez escaping/encoding.
+Template injection HTML:
 
+<?= $_GET['name'] ?> w szablonie bez escaping/encoding.
 Przykład poprawnego wyjścia (UWAGA: to TYLKO PRZYKŁAD, nie generuj go gdy brak XSS):
 {{
-  "findings": [
-    {{
-      "file": "example.php",
-      "line": 10,
-      "type": "xss",
-      "severity": "high",
-      "desc": "Reflected XSS przez echo $_GET bez esc_html.",
-      "snippet": "if (isset($_GET['msg'])) {\n  echo $_GET['msg'];\n}",
-      "exploit": "GET /?msg=%3Cscript%3Ealert(1)%3C/script%3E",
-      "fix": "if (isset($_GET['msg'])) {\n  echo esc_html($_GET['msg']);\n}",
-      "cwe": ["79"],
-      "owasp": "A07:2021-XSS"
-    }}
-  ]
+"findings": [
+{{
+"file": "example.php",
+"line": 10,
+"type": "xss",
+"severity": "high",
+"desc": "Reflected XSS przez echo $_GET bez esc_html.",
+"snippet": "if (isset($_GET['msg'])) {\n echo $_GET['msg'];\n}",
+"exploit": "GET /?msg=%3Cscript%3Ealert(1)%3C/script%3E",
+"fix": "if (isset($_GET['msg'])) {\n echo esc_html($_GET['msg']);\n}",
+"cwe": ["79"],
+"owasp": "A07:2021-XSS"
+}}
+]
 }}
 
 WYMAGANIA:
 
-- Szukaj TYLKO realnych XSS.
-- KAŻDY finding MUSI zawierać:
-  - snippet (dokładny, 2–4 linie kodu),
-  - konkretny payload (np. <script>alert(1)</script>),
-  - sensowną poprawkę (z kodem PHP/JS),
-  - CWE-79.
+Szukaj TYLKO realnych XSS.
+
+KAŻDY finding MUSI zawierać:
+
+snippet (dokładny, 2–4 linie kodu),
+
+konkretny payload (np. <script>alert(1)</script>),
+
+sensowną poprawkę (z kodem PHP/JS),
+
+CWE-79.
 
 FORMAT:
 
-- Odpowiadasz TYLKO jednym poprawnym JSON-em zgodnym ze schematem powyżej.
-- BEZ dodatkowego tekstu, BEZ ```
-- Jeśli nie ma podatności XSS – zwróć dokładnie:
+Odpowiadasz TYLKO jednym poprawnym JSON-em zgodnym ze schematem powyżej.
+
+BEZ dodatkowego tekstu, BEZ bloków ``` lub komentarzy.
+
+Jeśli nie ma podatności XSS – zwróć dokładnie:
 {{"findings": []}}
