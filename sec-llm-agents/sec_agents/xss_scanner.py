@@ -1,0 +1,59 @@
+from typing import List, Dict, Any
+import os
+from pathlib import Path
+
+from langchain_openai import ChatOpenAI
+from langchain_core.output_parsers import PydanticOutputParser
+
+from output.models import ScanResult
+
+
+class XSSScanner:
+    def __init__(self) -> None:
+        # możesz zacząć od 4o-mini; jak będzie słabo, podnieść do gpt-4o
+        self.llm = ChatOpenAI(
+            model="gpt-4o-mini",
+            temperature=0,
+            api_key=os.getenv("OPENAI_API_KEY"),
+        )
+        self.parser = PydanticOutputParser(pydantic_object=ScanResult)
+
+    def _load_template(self) -> str:
+        path = Path("prompts/xss_scan.txt")
+        return path.read_text(encoding="utf-8")
+
+    def scan(self, code: str, filepath: str, language: str = "php") -> List[Dict[str, Any]]:
+        format_instructions = self.parser.get_format_instructions()
+
+        wp_context = (
+            "WordPress plugin"
+            if any(x in filepath.lower() for x in ["wp-content", "plugins", "plugin"])
+            else "Web app"
+        )
+
+        raw = self._load_template()
+        prompt = raw.format(
+            language=language,
+            filepath=filepath,
+            wp_context=wp_context,
+            code=code[:8000],
+            format_instructions=format_instructions,
+        )
+
+        try:
+            llm_result = self.llm.invoke(prompt)
+            text = llm_result.content if hasattr(llm_result, "content") else str(llm_result)
+            result: ScanResult = self.parser.parse(text)
+        except Exception as exc:
+            print(f"[xss_scanner] parse error for {filepath}: {exc}")
+            return []
+
+        findings: List[Dict[str, Any]] = []
+        for f in result.findings:
+            d = f.model_dump()
+            # wymuszamy typ i OWASP, bo to jest XSS‑only agent
+            d["type"] = "xss"
+            if not d.get("owasp"):
+                d["owasp"] = "A07:2021-XSS"
+            findings.append(d)
+        return findings

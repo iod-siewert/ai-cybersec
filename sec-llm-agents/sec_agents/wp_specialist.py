@@ -23,9 +23,14 @@ class WPSpecialist:
 
     def __init__(self) -> None:
         self.pattern = PatternScanner()
+        self.xss = XSSScanner()
 
     def scan_wp_file(self, code: str, filepath: str, language: str = "php") -> List[Dict[str, Any]]:
         findings = self.pattern.scan(code, filepath, language)
+
+        xss_findings = self.xss.scan(code, filepath, language)
+
+        all_findings = findings + xss_findings
 
         enriched: List[Dict[str, Any]] = []
         for f in findings:
