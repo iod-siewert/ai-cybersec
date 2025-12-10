@@ -1,6 +1,7 @@
 from typing import List, Dict, Any
 
 from sec_agents.pattern_scanner import PatternScanner
+from sec_agents.xss_scanner import XSSScanner
 
 class WPSpecialist:
     """
