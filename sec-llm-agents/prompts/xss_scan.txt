@@ -41,9 +41,9 @@ Przykład poprawnego wyjścia (UWAGA: to TYLKO PRZYKŁAD, nie generuj go gdy bra
 "type": "xss",
 "severity": "high",
 "desc": "Reflected XSS przez echo $_GET bez esc_html.",
-"snippet": "if (isset($_GET['msg'])) {\n echo $_GET['msg'];\n}",
+"snippet": "if (isset($_GET['msg'])) {{\n echo $_GET['msg'];\n}}",
 "exploit": "GET /?msg=%3Cscript%3Ealert(1)%3C/script%3E",
-"fix": "if (isset($_GET['msg'])) {\n echo esc_html($_GET['msg']);\n}",
+"fix": "if (isset($_GET['msg'])) {{\n echo esc_html($_GET['msg']);\n}}",
 "cwe": ["79"],
 "owasp": "A07:2021-XSS"
 }}
