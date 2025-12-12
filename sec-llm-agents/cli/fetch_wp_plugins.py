@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import requests
 from datetime import datetime
-import os
+import sys
 # zapewnij, że katalog projektu jest na PYTHONPATH
 CURRENT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = CURRENT_DIR.parent
