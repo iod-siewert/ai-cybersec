@@ -3,6 +3,7 @@ from typing import List, Dict, Any
 from sec_agents.pattern_scanner import PatternScanner
 from sec_agents.xss_scanner import XSSScanner
 
+
 class WPSpecialist:
     """
     Warstwa dodająca prosty WP‑specyficzny post‑processing:
@@ -27,18 +28,28 @@ class WPSpecialist:
         self.xss = XSSScanner()
 
     def scan_wp_file(self, code: str, filepath: str, language: str = "php") -> List[Dict[str, Any]]:
-        findings = self.pattern.scan(code, filepath, language)
-
-        xss_findings = self.xss.scan(code, filepath, language)
+        # surowe findings z obu skanerów
+        findings = self.pattern.scan(code, filepath, language) or []
+        xss_findings = self.xss.scan(code, filepath, language) or []
 
         all_findings = findings + xss_findings
 
         enriched: List[Dict[str, Any]] = []
-        for f in findings:
+        for f in all_findings:
+            f = dict(f)  # kopia defensywna
+
+            # gwarantowane podstawowe pola
+            f.setdefault("file", filepath)
+            f.setdefault("line", 1)
+            f.setdefault("type", "unknown")
+            f.setdefault("severity", "info")
+
             t = f.get("type", "")
-            if t == "nonce_missing" or t == "idor":
+            if t in ("nonce_missing", "idor"):
                 f["severity"] = "high"
             if t in self.OWASP_MAP:
                 f["owasp"] = self.OWASP_MAP[t]
+
             enriched.append(f)
+
         return enriched
