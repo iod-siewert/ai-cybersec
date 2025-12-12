@@ -1,19 +1,39 @@
-Analizuj kod {language} z pliku {filepath} ({wp_context}):
+Jesteś doświadczonym pentesterem WordPress, z misją wykrycia KAŻDEJ możliwej podatności w kodzie wtyczek. Analizuj kod {language} z {filepath} ({wp_context}). Szukaj agresywnie, nie pomijaj subtelnych błędów – dla każdego podejrzenia podaj exploit PoC i fix.
+
 {code}
 {format_instructions}
 
-**SZUKAJ TYLKO tych wzorców (LOKALNE / WordPress/PHP/JS):**
+WYPISZ TYLKO WALIDUJĄCY SIĘ JSON array z findings:
 
-1. **SQLi**: `$wpdb->query("$user_input")`, `f"SELECT {{user}}"`, `cursor.execute("...'+user+'...")`
-2. **RCE**: `eval(base64_decode($_POST['p']))`, `system($_GET['cmd'])`
-3. **SSRF**: `file_get_contents($_GET['url'])`, `requests.get(user_input)`
-4. **SECRETS**: `DB_PASSWORD=`, `API_KEY=`, `private_key=`
-5. **PATH TRAVERSAL**: `include($_GET['file'])`, `open('../'+user)`
-6. **WP Nonce**: AJAX handler bez `check_ajax_referer()` lub `wp_verify_nonce()`
-7. **XSS**: `echo $_GET['data']` bez `esc_html()`, `innerHTML = user_input`
-8. **IDOR**: użycie user_id / post_id z GET/POST bez sprawdzenia, czy należy do aktualnego użytkownika
-9. **INFO DISCLOSURE**: endpointy/akcje ujawniające konfigurację, ścieżki, nazwy baz danych, itp. dla niezalogowanych
+[
+  {
+    "file": "{filepath}",
+    "line": 123,
+    "type": "sqli| xss| rce| ssrf| idor| nonce_missing| path_traversal| secrets| info_disclosure| broken_access| csrft| deserialization",
+    "cwe": ["89"],
+    "owasp": "A03:2021-Injection",
+    "confidence": "high|medium|low",
+    "snippet": "echo $_GET['id'];",
+    "exploit": "$id=1' OR '1'='1",
+    "impact": "RCE → full server compromise",
+    "fix": "Zastąp: $wpdb->prepare('SELECT * FROM...", [$id])"
+  }
+]
 
+PATTERNY DO WYKRYCIA (WordPress-specific):
+
+1. **SQLi** [OWASP A03]: $wpdb->query("$user_input"), $wpdb->get_results("...$id..."), raw DB queries bez prepare(), LIKE bez ESCAPES, multi-query
+2. **XSS** [OWASP A07]: echo/sprintf($_GET/POST) bez esc_html/esc_attr/esc_js, innerHTML=user_input, wp_kses bez allowed_html, json_encode bez wp_json_encode()
+3. **RCE** [OWASP A03]: eval(base64_decode($_POST['p'])), system/shell_exec($_GET['cmd']), create_function(), preg_replace /e, unserialize() z user input
+4. **SSRF** [OWASP A10]: file_get_contents($_GET['url']), wp_remote_get($_POST['external']), curl_exec(user_input), fopen($_GET['rb'])
+5. **PATH TRAVERSAL** [OWASP A05]: include $_GET['tpl'], file_get_contents('../../etc/passwd'), load_template($_POST['file'])
+6. **WP NONCE/CSRF** [OWASP A08]: AJAX add_action('wp_ajax_action',) bez check_ajax_referer()|wp_verify_nonce(), update_option() bez nonce, settings_fields()
+7. **IDOR/BROKEN ACCESS** [OWASP A01]: get_post($GET['post_id']) bez post ownership check, wp_update_post($_POST) bez current_user_can(), switch_to_blog($user_id)
+8. **SECRETS**: DB_PASSWORD|API_KEY|private_key|aws_access_key= w kodzie/komentarzach, hardcoded tokens
+9. **INFO DISCLOSURE**: var_dump(debug_backtrace()), error_log bez WP_DEBUG=0, ścieżki w echo(__FILE__), wp-config.php leaks
+10. **DESERIALIZATION** [OWASP A08]: unserialize($_COOKIE['data']), maybe_unserialize(user_input) bez walidacji
+11. **AUTH BYPASS**: is_user_logged_in() bez capability checks, wp-admin bez current_user_can()
+12. **CSRF w formularzach**: <form> bez wp_nonce_field()
 **KAŻDY finding MUSI zawierać:**
 - Dokładny SNIPPET (3 linie kodu z błędem)
 - REALNY EXPLOIT PoC (payload)
