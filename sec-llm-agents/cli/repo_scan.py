@@ -31,29 +31,40 @@ def scan_repo(repo_path: str, max_files: int = 30) -> List[Dict[str, Any]]:
 
     scanner = WPSpecialist()
 
-    files: List[Path] = []
-    for path in base.rglob("*"):
-        if (
-            path.is_file()
-            and path.suffix in {".php", ".js", ".py"}
-            and path.stat().st_size < 80_000
-        ):
-            files.append(path)
-            if len(files) >= max_files:
+    # Najpierw policz wszystkie pliki
+    all_files: List[Path] = [p for p in base.rglob("*") if p.is_file()]
+    console.print(f"[yellow]W repo {base} jest {len(all_files)} plików ogółem[/yellow]")
+
+    # Wybierz tylko pliki kodu, bez limitu rozmiaru, do max_files
+    code_files: List[Path] = []
+    for path in all_files:
+        if path.suffix.lower() in {".php", ".js", ".py"}:
+            code_files.append(path)
+            if len(code_files) >= max_files:
                 break
 
-    console.print(f"[bold]Skanuję {len(files)} plików z {base}[/bold]")
+    console.print(f"[bold]Skanuję {len(code_files)} plików z {base}[/bold]")
 
     all_findings: List[Dict[str, Any]] = []
-    for path in files:
+    for path in code_files:
         rel = str(path.relative_to(base))
         try:
             content = path.read_text(encoding="utf-8", errors="ignore")
         except Exception:
             continue
-        # TODO: jeśli chcesz rozróżniać typ po rozszerzeniu:
-        # lang = "php" if path.suffix == ".php" else "js" ...
-        findings = scanner.scan_wp_file(content, rel, "php")
+
+        # dobierz language na podstawie rozszerzenia
+        ext = path.suffix.lower()
+        if ext == ".php":
+            lang = "php"
+        elif ext == ".js":
+            lang = "js"
+        elif ext == ".py":
+            lang = "python"
+        else:
+            lang = "php"
+
+        findings = scanner.scan_wp_file(content, rel, lang)
         all_findings.extend(findings)
 
     return all_findings
