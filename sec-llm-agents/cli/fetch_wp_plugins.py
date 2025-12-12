@@ -2,6 +2,7 @@
 import requests
 from datetime import datetime
 import sys
+from pathlib import Path
 # zapewnij, że katalog projektu jest na PYTHONPATH
 CURRENT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = CURRENT_DIR.parent
