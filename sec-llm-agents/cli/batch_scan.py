@@ -3,7 +3,14 @@ import argparse
 from datetime import datetime
 from typing import Optional
 
-from db.scans_db import init_db, get_next_plugins, update_scan
+import sys
+from pathlib import Path
+# zapewnij, że katalog projektu jest na PYTHONPATH
+CURRENT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = CURRENT_DIR.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from db_plugins_ai_sec.scans_db import init_db, get_next_plugins, update_scan
 from cli.repo_scan import scan_repo  # używasz dotychczasowego kodu
 
 def scan_batch(limit: int, resume_from: Optional[str] = None) -> None:
