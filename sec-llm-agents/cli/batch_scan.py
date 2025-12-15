@@ -144,7 +144,8 @@ def main():
         help="Slug pluginu od którego kontynuować (alfabetycznie)",
     )
     args = parser.parse_args()
-    scan_batch(args.limit, args.is_resume_from)
+    # POPRAWKA LITERÓWKI: używamy args.resume_from zamiast args.is_resume_from
+    scan_batch(args.limit, args.resume_from)
 
 
 if __name__ == "__main__":
