@@ -104,7 +104,9 @@ def scan_plugin(slug: str, name: str, repo_url: str, vcs: str) -> tuple[str, int
         return "ok", count
 
     except Exception as e:
-        return f"error: {str(e)[:120]}", -1
+        error_msg = str(e).strip()
+        print(f"Błąd skanowania dla {slug}: {error_msg}")
+        return f"error: {error_msg[:120]}", -1
 
     finally:
         # Usuń cały katalog tymczasowy, nawet jeśli zwracany jest podkatalog (trunk)
@@ -142,7 +144,7 @@ def main():
         help="Slug pluginu od którego kontynuować (alfabetycznie)",
     )
     args = parser.parse_args()
-    scan_batch(args.limit, args.resume_from)
+    scan_batch(args.limit, args.is_resume_from)
 
 
 if __name__ == "__main__":

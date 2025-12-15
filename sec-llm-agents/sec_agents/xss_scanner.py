@@ -1,9 +1,11 @@
 from typing import List, Dict, Any
 import os
 from pathlib import Path
+import re # Nowy import
 
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import PydanticOutputParser
+from langchain_core.exceptions import OutputParserException # Nowy import
 
 from output.models import ScanResult
 
@@ -43,9 +45,18 @@ class XSSScanner:
         try:
             llm_result = self.llm.invoke(prompt)
             text = llm_result.content if hasattr(llm_result, "content") else str(llm_result)
+            
+            # Poprawka: usuń otaczający blok Markdown (```json...```)
+            if text.strip().startswith('```'):
+                text = re.sub(r"```json\n|```", "", text, flags=re.IGNORECASE).strip()
+                
             result: ScanResult = self.parser.parse(text)
+
+        except OutputParserException as exc:
+            print(f"[xss_scanner] parse error (OutputParserException) for {filepath}: {exc}")
+            return []
         except Exception as exc:
-            print(f"[xss_scanner] parse error for {filepath}: {exc}")
+            print(f"[xss_scanner] generic parse error for {filepath}: {exc}")
             return []
 
         findings: List[Dict[str, Any]] = []
