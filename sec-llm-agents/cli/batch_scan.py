@@ -38,7 +38,7 @@ def checkout_repo(slug: str, repo_url: str, vcs: str, max_timeout: int = 300) ->
                 text=True,
                 timeout=max_timeout,
             )
-            # Właściwy kod do skanowania jest w 'trunk'
+            # Właściwy kod do skanowania jest w 'trunk' (POPRAWKA 1)
             scan_path = temp_base_root / "trunk"
 
         elif vcs in ["github", "gitlab", "bitbucket", "git"]:
@@ -94,7 +94,7 @@ def scan_plugin(slug: str, name: str, repo_url: str, vcs: str) -> tuple[str, int
         # Odbierz ścieżkę do kodu i ścieżkę do usunięcia
         scan_path, temp_base_root = checkout_repo(slug, repo_url, vcs)
         print(f"Wywołuję scan_repo({scan_path})")
-        # scan_repo dostaje teraz poprawny katalog, np. /tmp/.../trunk
+        # scan_repo dostaje poprawny katalog, np. /tmp/.../trunk
         findings = scan_repo(str(scan_path), max_files=30)
 
         if findings is None:
@@ -109,7 +109,7 @@ def scan_plugin(slug: str, name: str, repo_url: str, vcs: str) -> tuple[str, int
         return f"error: {error_msg[:120]}", -1
 
     finally:
-        # Usuń cały katalog tymczasowy, nawet jeśli zwracany jest podkatalog (trunk)
+        # Usuń cały katalog tymczasowy (POPRAWKA 2)
         if temp_base_root and temp_base_root.exists():
             shutil.rmtree(temp_base_root, ignore_errors=True)
 
@@ -144,7 +144,7 @@ def main():
         help="Slug pluginu od którego kontynuować (alfabetycznie)",
     )
     args = parser.parse_args()
-    # POPRAWKA LITERÓWKI: używamy args.resume_from zamiast args.is_resume_from
+    # POPRAWKA 3: naprawa literówki
     scan_batch(args.limit, args.resume_from)
 
 

@@ -1,13 +1,32 @@
 from typing import List, Dict, Any
 import os
 from pathlib import Path
-import re # Nowy import
+import re
 
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import PydanticOutputParser
-from langchain_core.exceptions import OutputParserException # Nowy import
+from langchain_core.exceptions import OutputParserException
 
 from output.models import ScanResult
+
+
+def _clean_llm_response(text: str) -> str:
+    """Czyści odpowiedź LLM, aby zwiększyć szanse na prawidłowe parsowanie JSON."""
+    # 1. Usuń bloki Markdown (```json\n...\n```)
+    if text.strip().startswith('```'):
+        text = re.sub(r"```json\n|```", "", text, flags=re.IGNORECASE).strip()
+
+    # 2. Usuń znaki spacji niełamliwej (\xa0), które powodowały błąd '\n    "file"'
+    text = text.replace('\xa0', ' ')
+    
+    # 3. Zlokalizuj pierwszy '{' i ostatni '}' i zwróć tylko to, co jest pomiędzy
+    try:
+        start = text.index('{')
+        end = text.rindex('}')
+        return text[start:end+1].strip()
+    except ValueError:
+        # Jeśli nie znajdzie nawiasów, zwróc oryginalny tekst (parsowanie i tak zawiedzie)
+        return text.strip()
 
 
 class PatternScanner:
@@ -48,11 +67,9 @@ class PatternScanner:
             llm_result = self.llm.invoke(filled_prompt)
             text = llm_result.content if hasattr(llm_result, "content") else str(llm_result)
             
-            # Poprawka: usuń otaczający blok Markdown (```json...```)
-            if text.strip().startswith('```'):
-                text = re.sub(r"```json\n|```", "", text, flags=re.IGNORECASE).strip()
-
-            result: ScanResult = self.parser.parse(text)
+            cleaned_text = _clean_llm_response(text)
+            
+            result: ScanResult = self.parser.parse(cleaned_text)
         except OutputParserException as exc:
             print(f"[pattern_scanner] parse error (OutputParserException) for {filepath}: {exc}")
             return []
