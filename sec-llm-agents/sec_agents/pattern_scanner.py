@@ -1,32 +1,11 @@
 from typing import List, Dict, Any
 import os
 from pathlib import Path
-import re
 
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import PydanticOutputParser
-from langchain_core.exceptions import OutputParserException
 
 from output.models import ScanResult
-
-
-def _clean_llm_response(text: str) -> str:
-    """Czyści odpowiedź LLM, aby zwiększyć szanse na prawidłowe parsowanie JSON."""
-    # 1. Usuń bloki Markdown (```json\n...\n```)
-    if text.strip().startswith('```'):
-        text = re.sub(r"```json\n|```", "", text, flags=re.IGNORECASE).strip()
-
-    # 2. Usuń znaki spacji niełamliwej (\xa0), które powodowały błąd '\n    "file"'
-    text = text.replace('\xa0', ' ')
-    
-    # 3. Zlokalizuj pierwszy '{' i ostatni '}' i zwróć tylko to, co jest pomiędzy
-    try:
-        start = text.index('{')
-        end = text.rindex('}')
-        return text[start:end+1].strip()
-    except ValueError:
-        # Jeśli nie znajdzie nawiasów, zwróc oryginalny tekst (parsowanie i tak zawiedzie)
-        return text.strip()
 
 
 class PatternScanner:
@@ -44,7 +23,6 @@ class PatternScanner:
 
     def scan(self, code: str, filepath: str, language: str = "php") -> List[Dict[str, Any]]:
         format_instructions = self.parser.get_format_instructions()
-
         wp_context = (
             "WordPress plugin"
             if any(x in filepath.lower() for x in ["wp-content", "plugins", "plugin"])
@@ -53,28 +31,28 @@ class PatternScanner:
 
         raw = self._load_raw_template()
 
-        # uzupełniamy wszystkie placeholdery z pliku
-        filled_prompt = raw.format(
-            language=language,
-            filepath=filepath,
-            wp_context=wp_context,
-            code=code[:8000],
-            format_instructions=format_instructions,
+        # Uwaga: w pattern_scan.txt też masz gołe {} (np. w JSON-ie i w {{\"findings\": []}}),
+        # więc NIE wolno używać raw.format(...).
+        prompt = (
+            raw
+            .replace("{language}", language)
+            .replace("{filepath}", filepath)
+            .replace("{wp_context}", wp_context)
+            .replace("{code}", code[:8000])
+            .replace("{format_instructions}", format_instructions)
         )
 
-        # wołamy model na gotowym stringu i parsujemy JSON
+        text = ""
         try:
-            llm_result = self.llm.invoke(filled_prompt)
+            llm_result = self.llm.invoke(prompt)
             text = llm_result.content if hasattr(llm_result, "content") else str(llm_result)
-            
-            cleaned_text = _clean_llm_response(text)
-            
-            result: ScanResult = self.parser.parse(cleaned_text)
-        except OutputParserException as exc:
-            print(f"[pattern_scanner] parse error (OutputParserException) for {filepath}: {exc}")
-            return []
+            result: ScanResult = self.parser.parse(text)
         except Exception as exc:
-            print(f"[pattern_scanner] generic parse error for {filepath}: {exc}")
+            print(f"[pattern_scanner] parse error for {filepath}: {exc}")
+            if text:
+                print("=== PATTERN RAW LLM OUTPUT BEGIN ===")
+                print(text)
+                print("=== PATTERN RAW LLM OUTPUT END ===")
             return []
 
         findings: List[Dict[str, Any]] = []

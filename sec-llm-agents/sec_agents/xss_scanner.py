@@ -1,36 +1,16 @@
 from typing import List, Dict, Any
 import os
 from pathlib import Path
-import re
 
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import PydanticOutputParser
-from langchain_core.exceptions import OutputParserException
 
 from output.models import ScanResult
 
 
-def _clean_llm_response(text: str) -> str:
-    """Czyści odpowiedź LLM, aby zwiększyć szanse na prawidłowe parsowanie JSON."""
-    # 1. Usuń bloki Markdown (```json\n...\n```)
-    if text.strip().startswith('```'):
-        text = re.sub(r"```json\n|```", "", text, flags=re.IGNORECASE).strip()
-
-    # 2. Usuń znaki spacji niełamliwej (\xa0), które powodowały błąd '\n    "file"'
-    text = text.replace('\xa0', ' ')
-    
-    # 3. Zlokalizuj pierwszy '{' i ostatni '}' i zwróć tylko to, co jest pomiędzy
-    try:
-        start = text.index('{')
-        end = text.rindex('}')
-        return text[start:end+1].strip()
-    except ValueError:
-        return text.strip()
-
-
 class XSSScanner:
     def __init__(self) -> None:
-        # możesz zacząć od 4o-mini; jak będzie słabo, podnieść do gpt-4o
+        # Możesz podmienić na mocniejszy model, np. gpt-4.1
         self.llm = ChatOpenAI(
             model="gpt-4o-mini",
             temperature=0,
@@ -44,35 +24,38 @@ class XSSScanner:
 
     def scan(self, code: str, filepath: str, language: str = "php") -> List[Dict[str, Any]]:
         format_instructions = self.parser.get_format_instructions()
-
         wp_context = (
             "WordPress plugin"
             if any(x in filepath.lower() for x in ["wp-content", "plugins", "plugin"])
             else "Web app"
         )
 
+        # NIE używamy .format() na pliku, bo ma w sobie JSON z { }.
+        # Wstrzykujemy tylko potrzebne rzeczy ręcznie.
         raw = self._load_template()
-        prompt = raw.format(
-            language=language,
-            filepath=filepath,
-            wp_context=wp_context,
-            code=code[:8000],
-            format_instructions=format_instructions,
+
+        # Prosta podmiana pięciu placeholderów, reszta treści zostaje nienaruszona.
+        prompt = (
+            raw
+            .replace("{language}", language)
+            .replace("{filepath}", filepath)
+            .replace("{wp_context}", wp_context)
+            .replace("{code}", code[:8000])
+            .replace("{format_instructions}", format_instructions)
         )
 
+        text = ""
         try:
             llm_result = self.llm.invoke(prompt)
             text = llm_result.content if hasattr(llm_result, "content") else str(llm_result)
-            
-            cleaned_text = _clean_llm_response(text)
-                
-            result: ScanResult = self.parser.parse(cleaned_text)
-
-        except OutputParserException as exc:
-            print(f"[xss_scanner] parse error (OutputParserException) for {filepath}: {exc}")
-            return []
+            result: ScanResult = self.parser.parse(text)
         except Exception as exc:
-            print(f"[xss_scanner] generic parse error for {filepath}: {exc}")
+            # DEBUG: pokaż dokładnie, co model zwrócił
+            print(f"[xss_scanner] parse error for {filepath}: {exc}")
+            if text:
+                print("=== XSS RAW LLM OUTPUT BEGIN ===")
+                print(text)
+                print("=== XSS RAW LLM OUTPUT END ===")
             return []
 
         findings: List[Dict[str, Any]] = []
@@ -83,4 +66,5 @@ class XSSScanner:
             if not d.get("owasp"):
                 d["owasp"] = "A07:2021-XSS"
             findings.append(d)
+
         return findings
